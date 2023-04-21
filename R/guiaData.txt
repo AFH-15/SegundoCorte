@@ -1,0 +1,5 @@
+DAQKNN = datos de entrenamiento KNN
+DAQKNN2 = datos de demostración en video
+datos20CM = datos a 20 cm de distancia 
+datos50Ccm = datos rango de medida de 10 cm a 60 cm
+NEWDAQ = datos de demostracion regresion linal en video

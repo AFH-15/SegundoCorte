@@ -1,0 +1,238 @@
+---
+title: "KNN, regresión lineal y regresión multilineal"
+author: "Andres Hernandez Moncada cod: 95663 Andres  Mendoza cod: 86204 David Martinez cod: 81639 Jaime Gonzalez cod:33236 Juan Sebastian Rodriguez cod: 92699"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## **Predicción de una variable numérica**
+
+**Adquisición de datos**
+
+Utilizamos un sensor de ultrasonido HC-SR04 y un sensor laser VL53L0X la adquisición de datos la realizamos utilizando Arduino uno el cual comunicamos por bluetooth al computador para capturar los datos utilizamos PLX-DAQ en Excel una vez obtenidas las lecturas procedemos a realizar el postprocesado y guardamos el archivo en formato .csv.
+
+**Adquisición de datos cada 2 cm rango de 10 cm a 60 cm**
+
+iniciamos la comunicación inalámbrica mediante bluetooth con el archivo PLX-DAQ y el robot, cuando se establece la comunicación procedemos a dejar el robot a una distancia de 10 cm del muro lo que da inicio a las lecturas simultaneas de los sensores realizamos tres lecturas y tomamos la distancia real con un flexómetro, cuando finalizan las cuatro lecturas el robot se desplaza de forma automática a la siguiente posición.
+
+**Modelo predictivo**
+
+Una vez realizado el pre-procesado de los datos procedemos a realizar el análisis de los mismos.
+
+**Análisis exploratorio de datos**
+
+Histograma sensor ultrasonido a 20 cm de distancia.
+
+En esta grafica Podemos evidenciar que en el intervalo comprendido entre los 1285 y 1294 microsegundos se obtubieron las mayoria de datos de respuesta con algunos datos de error por sobre los 1300 microsegundos. La distribucion de la grafica corresponde a una sesgada a la derecha (sesgo positivo).
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo= FALSE}
+library(tidyverse)
+datos20CM <- read.csv("C:/Users/USER/Desktop/proyectoM/datos20CM.csv", sep=";")
+DAQ2<-datos20CM
+hist(DAQ2$ultrasonido,breaks=10)
+```
+
+Histograma sensor laser 20 cm de distancia.
+
+En este histograma encontramos que la mayoria de los datos se obtubieron en el Segundo y tercer cuartil comprendidos entre los 236 y 238 milimetros, se puede ver una distribucion normal de los datos con tendencia a una distribucion bimodal por los datos comrendidos en 236.8 y 237.1.
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo= FALSE}
+library(tidyverse)
+datos20CM <- read.csv("C:/Users/USER/Desktop/proyectoM/datos20CM.csv", sep=";")
+DAQ2<-datos20CM
+hist(DAQ2$laser,breaks=10)
+```
+
+**Histograma sensor ultrasonido rango de 10 cm a 60 cm de distancia.**
+
+Como podemos apreciar en la siguiente grafica obtenemos lecturas aleatorias
+en microsegundos que representan el rango de medida, también es posible
+apreciar errores en el valor que entrega el sensor los cuales se representan
+con valores de frecuencia mayor a 4.
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo= FALSE}
+library(tidyverse)
+datos50CM <- read.csv("C:/Users/USER/Desktop/proyectoM/datos50CM.csv", sep=";")
+DAQ1<-datos50CM
+hist(DAQ1$ultrasonido,breaks=25)
+```
+
+**Histograma sensor laser rango de 10 cm a 60 cm de distancia.**
+En la siguiente grafica obtenemos lecturas para el rango de 10 cm a 60 cm
+las cuales presentan errores visibles con las frecuencias mayores a 4, en comparación con el sensor de ultrasonido el sensor laser es más estable por lo que presenta menos variación en los datos.
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo= FALSE}
+library(tidyverse)
+datos50CM <- read.csv("C:/Users/USER/Desktop/proyectoM/datos50CM.csv", sep=";")
+DAQ1<-datos50CM
+hist(DAQ1$laser,breaks=25)
+```
+
+**Relación entre valores de los dos sensores en el rango de 10 cm a 60 cm.**
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo= FALSE}
+library(tidyverse)
+datos50CM <- read.csv("C:/Users/USER/Desktop/proyectoM/datos50CM.csv", sep=";")
+DAQ1<-datos50CM
+plot(DAQ1[2:3])
+```
+
+**Entrenamiento modelo lineal por sensor para predecir distancia**
+
+**Modelo de regresión lineal minimos cuadrados para sensor ultrasonido HC 04-SR.**
+
+Al comparar el modelo de regresión del sensor de ultrasonido con la medida
+real vemos que los valores difieren en el orden de los milímetros las posibles
+causas para esta variación son falta de resolución en la toma del valor real y
+margen de error del sensor.
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo= FALSE}
+library(tidyverse)
+library(dplyr)
+datos50CM <- read.csv("C:/Users/USER/Desktop/proyectoM/datos50CM.csv", sep=";")
+DAQ1<-datos50CM
+X<-DAQ1$ultrasonido
+Y<-DAQ1$real
+B<-cov(X,Y)/var(X)
+A<-mean(Y)-B*mean(X)
+DAQ1<-mutate(DAQ1,regresion_ultrasonido=A+ultrasonido*B)
+DAQ1
+```
+
+**Modelo lineal minimos cuadrados para sensor laser VL53L0X.**
+
+En algunos casos los datos capturados por el sensor laser difieren en 5 milímetros lo cual demuestra un porcentaje de error en la lectura que puede ser causado por factores físicos que afectan al sensor como la intensidad luminosa presente en el
+ambiente y también la falta de resolución en la medida real.
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo= FALSE}
+library(tidyverse)
+library(dplyr)
+DAQ3<-datos50CM
+x<-DAQ3$laser
+y<-DAQ3$real
+b<-cov(x,y)/var(x)
+a<-mean(y)-b*mean(x)
+DAQ3<-mutateDAQ1<-mutate(DAQ3,regresion_laser=a+laser*b)
+DAQ3
+```
+
+**Entrenamiento de modelo múltiple usando datos de dos sensores para predecir la distancia al muro.**
+
+En comparacion con los modelos anteriores el modelo de regresion multipe es mas estable y se hacer mas a la medida real.
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo= FALSE}
+library(tidyverse)
+library(dplyr)
+DAQ4<-datos50CM
+X<-DAQ4$ultrasonido
+x<-DAQ4$laser
+Y<-DAQ4$real
+model<-lm(Y~X+x)
+DAQ4<-mutate(DAQ1,regresion_mutiple=predict(model))
+DAQ4
+```
+
+Por lo anterior para la validación del modelo vamos a utilizar el modelo de regresión lineal múltiple y para mejorar la predicción del algoritmo de machine learning utilizaremos modelos de regresión lineal independientes para cada sensor porqué nos parece importante tener variables de regresión independientes por sensor para poder predecir correctamente la forma del muro.
+
+## **Predicción de variable categorica**
+
+Adquisición de datos realizamos 162 lecturas a una distancia de 10 cm a 60
+cm del muro, de las cuales tomamos 54 por cada tipo de muro (concavo, convexo y plano).
+
+**Análisis exploratorio de datos**
+
+Relacion entre los valores que entregan los sensores
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo= FALSE}
+library(tidyverse)
+DAQKNN <- read.csv("C:/Users/USER/Desktop/proyectoM/DAQKNN.csv", sep=";")
+DAQ5=DAQKNN
+DAQ5<-mutate(DAQ5,regresion_ultrasonido=A+ultrasonido*B)
+DAQ5<-mutate(DAQ5,regresion_laser=a+laser*b)
+
+##convertir muro a factor si no es char
+plot(DAQ5[2:3])
+
+```
+
+Relacion entre los valores predecidos para cada sensor
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo= FALSE}
+plot(DAQ5[5:6])
+
+```
+
+Histograma de frecuencias para el sensor de ultrasonido
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo= FALSE}
+hist(DAQ5$ultrasonido,breaks=15)
+
+```
+
+Histograma de frecuencias para el sensor de laser
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo= FALSE}
+hist(DAQ5$laser,breaks=50)
+
+```
+
+Comparación con la variable categorica.
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo= FALSE}
+library(psych)
+pairs.panels(DAQ5[5:6], pch=21, main=("Concavo =rojo, convexo=verde, plano=azul")
+             , bg=c("red","green2","blue")[unclass(DAQ5$muro)])
+```
+
+Utilizamos la funcion prop.table en los valores del modelo de regresión lineal de cada sensor para verificar que los datos capturados por los sensores sean los adecuados para machine learning y obtenemos valores pequeños lo que demuestra que los datos si son aptos para la técnica de machine learning que vamos a aplicar.
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo= FALSE}
+prop.table((table(DAQ5$regresion_ultrasonido))) ##
+prop.table((table(DAQ5$regresion_laser)))
+```
+
+Entrenamiento y prueba del algoritmo con cross-validation(70-30).
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo= FALSE}
+normalise <-function(x){##
+  return((x-min(x))/(max(x)-min(x)))}
+normData<-DAQ5
+standarData<-DAQ5
+normData$ultrasonido<-normalise(normData$ultrasonido)
+normData$laser<-normalise(normData$laser)
+##normalizacion z score probar opciones
+standarData$ultrasonido<-scale(normData$ultrasonido)
+standarData$laser<-scale(normData$laser)
+
+colnames(standarData)[5:6]<-c("ultrasonido","laser")
+sample.index<-sample(1:nrow(DAQ5)
+                     , nrow(DAQ5)*0.7
+                     , replace=FALSE)
+## entrenamiento
+k<-1
+predictors<-c("regresion_ultrasonido","regresion_laser")
+train.data<-DAQ5[sample.index##70%
+                ,c(predictors,"muro")
+                , drop=F]
+test.data<-DAQ5[-sample.index##30%
+                ,c(predictors,"muro")
+                , drop=F]
+library(class)
+predictions<- knn(train=train.data[predictors]## entrenamiento variables predictoras
+                  ,test=test.data[predictors]## prueba variables predictoras
+                  ,cl=train.data$muro ##variable clase
+                  ,k=k)
+
+## verificar el rendimiento
+library(gmodels)
+CrossTable(x=test.data$muro,y=predictions)
+
+
+```
+
+Realizamos pruebas al algoritmo de machine learning con k (1, 2, 3) con el
+valor de k que mayores predicciones correctas por el algoritmo fue 1.
